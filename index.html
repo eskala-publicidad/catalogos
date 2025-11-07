@@ -25,7 +25,6 @@
 
 		<script>
 			// Lista de catálogos: img -> portada; pdf -> archivo PDF en la misma carpeta; url -> enlace externo (si existe)
-			// He incluido dos entradas externas de ejemplo (promocionales y 2025-2026). Cambia las URLs según necesites.
 			const items = [
 				{ title: 'CDO', img: 'm-line.png', type: 'external', url: 'https://heyzine.com/flip-book/bfaa6410cb.html#page/1' },
 				{ title: 'IMPRESSLINE', img: 'line.png', type: 'external', url: 'https://issuu.com/3doubleu/docs/impressline._catalogo_2026' },
@@ -34,11 +33,11 @@
 				{ title: 'FITCAP', img: 'fitcap.png', type: "external", url: "https://dkps.com.mx/wp-content/uploads/2024/03/FITCAP-2024-3.pdf" },
 				{ title: 'DKPS', img: 'dkps.png', type: "external", url: "https://dkps.com.mx/wp-content/uploads/2024/12/CATALOGOS-DIGITALES-DKPSYFITCAP-2024.pdf" },
 				{ title: 'INNOVATION', img: 'cat.png', type: "external", url: "https://online.flippingbook.com/view/939406/" },
-	                { title: "PROMOOPCIÓN" , img: "promocionales.jpeg", type: "external", url: "https://catalogo.promocionalesenlinea.com/catalogo2025-26/?page=1" },
-                    { title: "DOBLE VELA" , img: "vela.png", type: "external", url: "https://www.doblevela.com/catalogovirtual/" },
-                    { title: "BIC GRAPHIC", img: "big.png", type: "external", url: "https://www.bicgraphic.com.mx/archivos/Catalogo_BIC_Graphic.pdf" },
-                    { title: "4PROMOTIONAL", img: "2025-2026.jpeg", type: "external", url: "https://online.flippingbook.com/view/904760688/" },
-                    { title: "BOLSA ECOLÓGICA", img: "1.webp", pdf: "bolsas.pdf" },
+                { title: "PROMOOPCIÓN" , img: "promocionales.jpeg", type: "external", url: "https://catalogo.promocionalesenlinea.com/catalogo2025-26/?page=1" },
+                { title: "DOBLE VELA" , img: "vela.png", type: "external", url: "https://www.doblevela.com/catalogovirtual/" },
+                { title: "BIC GRAPHIC", img: "big.png", type: "external", url: "https://www.bicgraphic.com.mx/archivos/Catalogo_BIC_Graphic.pdf" },
+                { title: "4PROMOTIONAL", img: "2025-2026.jpeg", type: "external", url: "https://online.flippingbook.com/view/904760688/" },
+                { title: "BOLSA ECOLÓGICA", img: "1.webp", pdf: "bolsas.pdf" },
 			];
 
 			const grid = document.getElementById('grid');
@@ -55,92 +54,193 @@
 				const title = document.createElement('h2');
 				title.textContent = it.title;
 
-				const link = document.createElement('a');
+				// determinar url que se compartirá / abrirá
+				let shareUrl = '';
 				if (it.type === 'external') {
-					link.href = it.url;
-					link.target = '_blank';
-					link.rel = 'noopener noreferrer';
+					shareUrl = it.url;
 				} else if (it.pdf) {
-					// abrir el visor local en una nueva pestaña
-					const params = new URLSearchParams({ file: it.pdf });
-					link.href = `viewer.html?${params.toString()}`;
-					link.target = '_blank';
-					link.rel = 'noopener noreferrer';
+					shareUrl = `viewer.html?file=${encodeURIComponent(it.pdf)}`;
+				} else {
+					// fallback a la página actual si no hay url
+					shareUrl = window.location.href;
 				}
 
+				const link = document.createElement('a');
+				link.href = shareUrl;
+				link.target = '_blank';
+				link.rel = 'noopener noreferrer';
 				link.appendChild(img);
 				link.appendChild(title);
+
+				// controles (botón de compartir)
+				const controls = document.createElement('div');
+				controls.className = 'card-controls';
+
+				const shareBtn = document.createElement('button');
+				shareBtn.type = 'button';
+				shareBtn.className = 'share-btn';
+				shareBtn.setAttribute('aria-label', `Compartir ${it.title}`);
+				shareBtn.title = 'Compartir';
+				// icono inline (SVG)
+				shareBtn.innerHTML = `
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+						<path fill="currentColor" d="M18 8a3 3 0 0 0-2.24 1.03l-6.28-3.14A3 3 0 1 0 8 7.83l6.28 3.14A3 3 0 1 0 18 8zm-12 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm12 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+					</svg>
+				`;
+
+				// handler de compartir
+				shareBtn.addEventListener('click', async (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					const urlToShare = shareUrl;
+					const titleToShare = it.title || document.title;
+
+					// preferir Web Share API
+					if (navigator.share) {
+						try {
+							await navigator.share({ title: titleToShare, url: urlToShare });
+							showToast('Compartido');
+						} catch (err) {
+							// usuario canceló o hubo error
+							console.info('Compartir cancelado o falló', err);
+						}
+					} else {
+						// fallback: copiar al portapapeles
+						try {
+							await navigator.clipboard.writeText(urlToShare);
+							showToast('Enlace copiado');
+						} catch (err) {
+							// último recurso: abrir prompt para seleccionar y copiar manualmente
+							prompt('Copia este enlace:', urlToShare);
+						}
+					}
+				});
+
+				controls.appendChild(shareBtn);
+
 				card.appendChild(link);
+				card.appendChild(controls);
 				grid.appendChild(card);
 			});
 
-				// add small click animation: add class then remove shortly
-				document.querySelectorAll('.card a').forEach(a => {
-					a.addEventListener('click', (e) => {
-						const card = a.closest('.card');
-						if (!card) return;
-						card.classList.add('clicked');
-						setTimeout(() => card.classList.remove('clicked'), 250);
-					});
+			// add small click animation: add class then remove shortly
+			document.querySelectorAll('.card a').forEach(a => {
+				a.addEventListener('click', (e) => {
+					const card = a.closest('.card');
+					if (!card) return;
+					card.classList.add('clicked');
+					setTimeout(() => card.classList.remove('clicked'), 250);
 				});
+			});
 
-				// Particles background
-				(function(){
-					const canvas = document.getElementById('particles');
-					const ctx = canvas.getContext('2d');
-					let w, h, particles;
+			// toast helper
+			function showToast(text, ms = 2000) {
+				let toast = document.getElementById('toast-msg');
+				if (!toast) {
+					toast = document.createElement('div');
+					toast.id = 'toast-msg';
+					toast.className = 'toast';
+					document.body.appendChild(toast);
+				}
+				toast.textContent = text;
+				toast.classList.add('visible');
+				clearTimeout(toast._t);
+				toast._t = setTimeout(() => toast.classList.remove('visible'), ms);
+			}
 
-					const colors = ['#FFD166','#06D6A0','#4D96FF','#FF6B6B','#B388FF'];
+			// Particles background
+			(function(){
+				const canvas = document.getElementById('particles');
+				const ctx = canvas.getContext('2d');
+				let w, h, particles;
 
-					function resize() {
-						w = canvas.width = window.innerWidth;
-						h = canvas.height = window.innerHeight;
+				const colors = ['#FFD166','#06D6A0','#4D96FF','#FF6B6B','#B388FF'];
+
+				function resize() {
+					w = canvas.width = window.innerWidth;
+					h = canvas.height = window.innerHeight;
+				}
+
+				function initParticles(){
+					particles = [];
+					const count = Math.round((w*h)/60000); // density
+					for(let i=0;i<count;i++){
+						particles.push({
+							x: Math.random()*w,
+							y: Math.random()*h,
+							r: Math.random()*2+0.6,
+							col: colors[Math.floor(Math.random()*colors.length)],
+							yVel: (Math.random()-0.5)*0.4,
+							xVel: (Math.random()-0.5)*0.4,
+							alpha: 0.6+Math.random()*0.4
+						});
 					}
+				}
 
-					function initParticles(){
-						particles = [];
-						const count = Math.round((w*h)/60000); // density
-						for(let i=0;i<count;i++){
-							particles.push({
-								x: Math.random()*w,
-								y: Math.random()*h,
-								r: Math.random()*2+0.6,
-								col: colors[Math.floor(Math.random()*colors.length)],
-								yVel: (Math.random()-0.5)*0.4,
-								xVel: (Math.random()-0.5)*0.4,
-								alpha: 0.6+Math.random()*0.4
-							});
-						}
+				function draw(){
+					ctx.clearRect(0,0,w,h);
+					ctx.fillStyle = 'rgba(0,0,0,0)';
+					for(const p of particles){
+						p.x += p.xVel; p.y += p.yVel;
+						if (p.x < -10) p.x = w+10; if (p.x > w+10) p.x = -10;
+						if (p.y < -10) p.y = h+10; if (p.y > h+10) p.y = -10;
+						ctx.beginPath();
+						ctx.globalAlpha = p.alpha;
+						ctx.fillStyle = p.col;
+						ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+						ctx.fill();
 					}
+					ctx.globalAlpha = 1;
+					requestAnimationFrame(draw);
+				}
 
-					function draw(){
-						ctx.clearRect(0,0,w,h);
-						ctx.fillStyle = 'rgba(0,0,0,0)';
-						for(const p of particles){
-							p.x += p.xVel; p.y += p.yVel;
-							if (p.x < -10) p.x = w+10; if (p.x > w+10) p.x = -10;
-							if (p.y < -10) p.y = h+10; if (p.y > h+10) p.y = -10;
-							ctx.beginPath();
-							ctx.globalAlpha = p.alpha;
-							ctx.fillStyle = p.col;
-							ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-							ctx.fill();
-						}
-						ctx.globalAlpha = 1;
-						requestAnimationFrame(draw);
-					}
-
-					window.addEventListener('resize', () => { resize(); initParticles(); });
-					resize(); initParticles(); draw();
-				})();
+				window.addEventListener('resize', () => { resize(); initParticles(); });
+				resize(); initParticles(); draw();
+			})();
 		</script>
 
 			<style>
 				/* small inline styles for header/particles layering to keep files minimal */
+				:root{
+					--bg: #0f1724;
+					--card-bg: rgba(255,255,255,0.03);
+					--card-border: rgba(255,255,255,0.06);
+					--muted: rgba(255,255,255,0.7);
+				}
+				html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:linear-gradient(180deg,#081129 0%,#0f1724 100%);-webkit-font-smoothing:antialiased}
+				.container{max-width:1080px;margin:0 auto;padding:96px 20px 40px}
+				h1{margin:0 0 8px;font-size:28px}
+				.subtitle{margin:0 0 20px;color:var(--muted)}
+
+				.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;align-items:start}
+				.card{position:relative;background:var(--card-bg);border:1px solid var(--card-border);padding:10px;border-radius:10px;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}
+				.card.clicked{transform:scale(.985);box-shadow:0 6px 18px rgba(0,0,0,0.45)}
+				.card img{width:100%;height:220px;object-fit:cover;border-radius:6px;display:block}
+				.card h2{font-size:14px;margin:8px 0 0;color:var(--muted);text-align:center}
+
 				.site-header{position:fixed;top:8px;left:12px;z-index:10}
 				.site-logo{height:46px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.25))}
 				#particles{position:fixed;inset:0;z-index:-1;pointer-events:none}
-				.whatsapp-btn{position:fixed;right:18px;bottom:18px;background:#25D366;color:#fff;padding:12px 16px;border-radius:28px;text-decoration:none;box-shadow:0 6px 20px rgba(37,211,102,0.2);font-weight:700;z-index:20}
+				.whatsapp-btn{position:fixed;right:18px;bottom:18px;background:#25D366;color:#fff;padding:12px 16px;border-radius:28px;text-decoration:none;box-shadow:0 6px 20px rgba(37,211,102,0.2);font-weight:700;z-index:12}
+
+				/* card controls (share) */
+				.card-controls{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:6}
+				.share-btn{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);color:#fff;padding:8px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:transform .12s ease,background .12s ease}
+				.share-btn:active{transform:scale(.96)}
+				.share-btn svg{display:block}
+				.share-btn:focus{outline:2px solid rgba(255,255,255,0.12);outline-offset:2px}
+
+				/* toast */
+				.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:28px;background:rgba(0,0,0,0.7);color:#fff;padding:10px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:2000}
+				.toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+				
+				.footer{margin-top:28px;color:var(--muted);font-size:13px;text-align:center}
+				
+				/* responsive tweaks */
+				@media (max-width:480px){
+					.card img{height:160px}
+					.container{padding:80px 12px 20px}
+				}
 			</style>
 	</body>
 </html>
