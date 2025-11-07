@@ -1,0 +1,30 @@
+:root{--bg:#ffffff;--card:#ffffff;--muted:#666;--accent:#0a66c2}
+*{box-sizing:border-box}
+h1{margin:0 0 6px;font-size:28px}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+
+/* Fondo morado "moreton" con partículas encima (canvas) */
+body{margin:0;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#37124a 0%,#5b2b7a 100%);color:#fff;min-height:100vh;position:relative}
+
+/* ensure content sits above canvas */
+main.container{position:relative;z-index:5}
+h1{margin:0 0 6px;font-size:28px}
+.subtitle{margin:0 0 18px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.card{background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;box-shadow:0 6px 26px rgba(0,0,0,0.25);text-align:center;backdrop-filter: blur(6px)}
+.card a{color:inherit;text-decoration:none;display:flex;flex-direction:column;align-items:stretch;height:100%;transition:transform .18s ease, box-shadow .18s ease}
+.card img{width:100%;height:220px;object-fit:cover;display:block;transition:transform .2s ease}
+.card h2{font-size:14px;margin:8px;padding:0 8px 12px;color:#fff}
+
+/* hover + focus */
+.card a:hover{transform:translateY(-6px) scale(1.02)}
+.card a:active{transform:translateY(-2px) scale(.98)}
+
+/* click animation applied by JS */
+.card.clicked{transform:scale(.96) !important;transition:transform .12s ease !important}
+.footer{margin:20px 0 40px;color:rgba(255,255,255,0.7);font-size:13px}
+
+/* Viewer small tweaks */
+.top a{color:var(--accent);text-decoration:none}
+
+@media (max-width:480px){.card img{height:140px}.container{padding:0 12px}}
